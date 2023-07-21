@@ -1,7 +1,7 @@
 [![crates.io](https://img.shields.io/crates/v/intmap.svg)](https://crates.io/crates/intmap)
 
 # rust-intmap
-Specialized hashmap for u64 keys
+Specialized hashmap for u32 keys
 
 Might be missing some functionality but you can remove, add, get and clear for now.
 

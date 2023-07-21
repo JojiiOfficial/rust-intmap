@@ -1,3 +1,5 @@
+pub mod int_set;
+
 #[cfg(feature = "serde")]
 mod serde;
 
@@ -11,9 +13,9 @@ pub use entry::*;
 
 #[derive(Clone)]
 pub struct IntMap<V> {
-    cache: Vec<Vec<(u64, V)>>,
+    cache: Vec<Vec<(u32, V)>>,
     size: u32,
-    mod_mask: u64,
+    mod_mask: u32,
     count: usize,
     load_factor: usize,
 }
@@ -29,6 +31,7 @@ impl<V> IntMap<V> {
     /// let mut map: IntMap<u64> = IntMap::new();
     /// assert_eq!(map, IntMap::default());
     /// ```
+    #[inline]
     pub fn new() -> Self {
         IntMap::with_capacity(4)
     }
@@ -79,6 +82,7 @@ impl<V> IntMap<V> {
     }
 
     /// Returns current load_factor
+    #[inline]
     pub fn get_load_factor(&self) -> f32 {
         self.load_factor as f32 / 1000.
     }
@@ -105,7 +109,7 @@ impl<V> IntMap<V> {
     /// assert_eq!(map.insert(21, "Ay, caramba"), Some("Eat my shorts"));
     /// assert_eq!(map.get(21), Some(&"Ay, caramba"));
     /// ```
-    pub fn insert(&mut self, key: u64, value: V) -> Option<V> {
+    pub fn insert(&mut self, key: u32, value: V) -> Option<V> {
         let ix = self.calc_index(key);
 
         let vals = &mut self.cache[ix];
@@ -142,7 +146,7 @@ impl<V> IntMap<V> {
     /// assert!(!map.insert_checked(21, "Ay, caramba"));
     /// assert_eq!(map.get(21), Some(&"Eat my shorts"));
     /// ```
-    pub fn insert_checked(&mut self, key: u64, value: V) -> bool {
+    pub fn insert_checked(&mut self, key: u32, value: V) -> bool {
         let ix = self.calc_index(key);
 
         let vals = &mut self.cache[ix];
@@ -174,12 +178,12 @@ impl<V> IntMap<V> {
     /// assert_eq!(*val.unwrap(), 42);
     /// assert!(map.contains_key(21));
     /// ```
-    pub fn get(&self, key: u64) -> Option<&V> {
+    pub fn get(&self, key: u32) -> Option<&V> {
         let ix = self.calc_index(key);
 
         let vals = &self.cache[ix];
 
-        vals.iter().find_map(|kv| (kv.0 == key).then(|| &kv.1))
+        vals.iter().find_map(|kv| (kv.0 == key).then_some(&kv.1))
     }
 
     /// Get mutable value from the IntMap.
@@ -201,14 +205,14 @@ impl<V> IntMap<V> {
     /// }
     ///     assert_eq!(*map.get(21).unwrap(), 43);
     /// ```
-    pub fn get_mut(&mut self, key: u64) -> Option<&mut V> {
+    pub fn get_mut(&mut self, key: u32) -> Option<&mut V> {
         let ix = self.calc_index(key);
 
         let vals = &mut self.cache[ix];
 
         return vals
             .iter_mut()
-            .find_map(|kv| (kv.0 == key).then(move || &mut kv.1));
+            .find_map(|kv| (kv.0 == key).then_some(&mut kv.1));
     }
 
     /// Remove value from the IntMap.
@@ -225,7 +229,7 @@ impl<V> IntMap<V> {
     /// assert_eq!(val.unwrap(), 42);
     /// assert!(!map.contains_key(21));
     /// ```
-    pub fn remove(&mut self, key: u64) -> Option<V> {
+    pub fn remove(&mut self, key: u32) -> Option<V> {
         let ix = self.calc_index(key);
 
         let vals = &mut self.cache[ix];
@@ -254,7 +258,7 @@ impl<V> IntMap<V> {
     /// map.insert(21, 42);
     /// assert!(map.contains_key(21));
     /// ```
-    pub fn contains_key(&self, key: u64) -> bool {
+    pub fn contains_key(&self, key: u32) -> bool {
         self.get(key).is_some()
     }
 
@@ -301,7 +305,7 @@ impl<V> IntMap<V> {
     /// ```
     pub fn retain<F>(&mut self, mut f: F)
     where
-        F: FnMut(u64, &V) -> bool,
+        F: FnMut(u32, &V) -> bool,
     {
         let mut removed = 0;
         for vals in &mut self.cache {
@@ -336,58 +340,64 @@ impl<V> IntMap<V> {
 
     //**** Iterators *****
 
-    pub fn iter(&self) -> Iter<u64, V> {
+    #[inline]
+    pub fn iter(&self) -> Iter<u32, V> {
         Iter::new(&self.cache)
     }
 
-    pub fn iter_mut(&mut self) -> IterMut<u64, V> {
+    #[inline]
+    pub fn iter_mut(&mut self) -> IterMut<u32, V> {
         IterMut::new(&mut self.cache)
     }
 
-    pub fn keys(&self) -> Keys<u64, V> {
+    #[inline]
+    pub fn keys(&self) -> Keys<u32, V> {
         Keys { inner: self.iter() }
     }
 
-    pub fn values(&self) -> Values<u64, V> {
+    #[inline]
+    pub fn values(&self) -> Values<u32, V> {
         Values { inner: self.iter() }
     }
 
-    pub fn values_mut(&mut self) -> ValuesMut<u64, V> {
+    #[inline]
+    pub fn values_mut(&mut self) -> ValuesMut<u32, V> {
         ValuesMut {
             inner: self.iter_mut(),
         }
     }
 
-    pub fn drain(&mut self) -> Drain<u64, V> {
+    #[inline]
+    pub fn drain(&mut self) -> Drain<u32, V> {
         Drain::new(&mut self.cache, &mut self.count)
     }
 
     //**** Internal hash stuff *****
 
     #[inline(always)]
-    fn hash_u64(seed: u64) -> u64 {
-        let a = 11400714819323198549u64;
-        a.wrapping_mul(seed)
+    fn hash_u32(seed: u32) -> u32 {
+        // let a = 11400714819323198549u64;
+        4294967291u32.wrapping_mul(seed)
     }
 
     #[inline(always)]
-    pub(crate) fn calc_index(&self, key: u64) -> usize {
-        let hash = Self::hash_u64(key);
+    pub(crate) fn calc_index(&self, key: u32) -> usize {
+        let hash = Self::hash_u32(key);
         // Faster modulus
         (hash & self.mod_mask) as usize
     }
 
     #[inline(always)]
     fn lim(&self) -> usize {
-        2u64.pow(self.size) as usize
+        2u32.pow(self.size) as usize
     }
 
     fn increase_cache(&mut self) {
         self.size += 1;
         let new_lim = self.lim();
-        self.mod_mask = (new_lim as u64) - 1;
+        self.mod_mask = (new_lim as u32) - 1;
 
-        let mut vec: Vec<Vec<(u64, V)>> = (0..new_lim).map(|_| Vec::new()).collect();
+        let mut vec: Vec<Vec<(u32, V)>> = (0..new_lim).map(|_| Vec::new()).collect();
         std::mem::swap(&mut self.cache, &mut vec);
 
         for k in vec.into_iter().flatten() {
@@ -415,14 +425,15 @@ impl<V> IntMap<V> {
 
     /// Number of elements in map.
     ///
+    #[inline]
     pub fn len(&self) -> usize {
-        self.count as usize
+        self.count
     }
 
     /// Force count number of slots filled.
     ///
-    pub fn load(&self) -> u64 {
-        self.cache.iter().filter(|vals| !vals.is_empty()).count() as u64
+    pub fn load(&self) -> u32 {
+        self.cache.iter().filter(|vals| !vals.is_empty()).count() as u32
     }
 
     pub fn load_rate(&self) -> f64 {
@@ -431,6 +442,7 @@ impl<V> IntMap<V> {
 
     /// Total number of slots available.
     ///
+    #[inline]
     pub fn capacity(&self) -> usize {
         self.cache.len()
     }
@@ -445,7 +457,7 @@ impl<V> IntMap<V> {
         let mut map = IntMap::new();
 
         for s in self.cache.iter() {
-            let key = s.len() as u64;
+            let key = s.len() as u32;
             if key > 1 {
                 if !map.contains_key(key) {
                     map.insert(key, 1);
@@ -485,12 +497,13 @@ impl<V> IntMap<V> {
     /// assert_eq!(counters.get(50), Some(&3));
     /// assert_eq!(counters.get(60), Some(&1));
     /// ```
-    pub fn entry(&mut self, key: u64) -> Entry<V> {
+    pub fn entry(&mut self, key: u32) -> Entry<V> {
         Entry::new(key, self)
     }
 }
 
 impl<V> Default for IntMap<V> {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }
@@ -502,6 +515,7 @@ impl<V> PartialEq for IntMap<V>
 where
     V: PartialEq,
 {
+    #[inline]
     fn eq(&self, other: &IntMap<V>) -> bool {
         self.iter().all(|(k, a)| other.get(*k) == Some(a))
             && other.iter().all(|(k, a)| self.get(*k) == Some(a))

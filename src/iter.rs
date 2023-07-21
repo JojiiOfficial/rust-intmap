@@ -37,6 +37,7 @@ pub struct IterMut<'a, K: 'a, V: 'a> {
 }
 
 impl<'a, K, V> IterMut<'a, K, V> {
+    #[inline]
     pub(crate) fn new(vec: &'a mut [Vec<(K, V)>]) -> IterMut<'a, K, V> {
         IterMut {
             inner: vec.iter_mut().flatten(),
@@ -66,6 +67,7 @@ impl<'a, K, V> Iterator for Keys<'a, K, V> {
     fn next(&mut self) -> Option<&'a K> {
         self.inner.next().map(|kv| kv.0)
     }
+
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.inner.size_hint()
@@ -114,9 +116,10 @@ impl<'a, K, V> Iterator for ValuesMut<'a, K, V> {
 // ***************** Into Iter *********************
 
 impl<V> IntoIterator for IntMap<V> {
-    type Item = (u64, V);
-    type IntoIter = IntoIter<u64, V>;
+    type Item = (u32, V);
+    type IntoIter = IntoIter<u32, V>;
 
+    #[inline]
     fn into_iter(self) -> Self::IntoIter {
         IntoIter::new(self.cache)
     }
@@ -127,6 +130,7 @@ pub struct IntoIter<K, V> {
 }
 
 impl<K, V> IntoIter<K, V> {
+    #[inline]
     pub(crate) fn new(vec: Vec<Vec<(K, V)>>) -> Self {
         IntoIter {
             inner: vec.into_iter().flatten(),
@@ -156,6 +160,7 @@ pub struct Drain<'a, K: 'a, V: 'a> {
 }
 
 impl<'a, K, V> Drain<'a, K, V> {
+    #[inline]
     pub(crate) fn new(vec: &'a mut [Vec<(K, V)>], count: &'a mut usize) -> Drain<'a, K, V> {
         Drain {
             count,
@@ -179,9 +184,9 @@ impl<'a, K, V> Iterator for Drain<'a, K, V> {
 
 // ***************** Extend *********************
 
-impl<V> Extend<(u64, V)> for IntMap<V> {
+impl<V> Extend<(u32, V)> for IntMap<V> {
     #[inline]
-    fn extend<T: IntoIterator<Item = (u64, V)>>(&mut self, iter: T) {
+    fn extend<T: IntoIterator<Item = (u32, V)>>(&mut self, iter: T) {
         for elem in iter {
             self.insert(elem.0, elem.1);
         }
@@ -190,9 +195,9 @@ impl<V> Extend<(u64, V)> for IntMap<V> {
 
 // ***************** FromIterator *********************
 
-impl<V> std::iter::FromIterator<(u64, V)> for IntMap<V> {
+impl<V> std::iter::FromIterator<(u32, V)> for IntMap<V> {
     #[inline]
-    fn from_iter<T: IntoIterator<Item = (u64, V)>>(iter: T) -> Self {
+    fn from_iter<T: IntoIterator<Item = (u32, V)>>(iter: T) -> Self {
         let iterator = iter.into_iter();
         let (lower_bound, _) = iterator.size_hint();
 

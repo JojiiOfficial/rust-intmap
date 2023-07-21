@@ -21,7 +21,7 @@ mod tests {
     // ********** Built in **********
 
     #[bench]
-    fn u64_insert_built_in(b: &mut Bencher) {
+    fn u32_insert_built_in(b: &mut Bencher) {
         let data = get_random_range(VEC_COUNT);
         let mut map = HashMap::with_capacity(data.len());
 
@@ -35,7 +35,7 @@ mod tests {
     }
 
     #[bench]
-    fn u64_insert_built_in_without_capacity(b: &mut Bencher) {
+    fn u32_insert_built_in_without_capacity(b: &mut Bencher) {
         let data = get_random_range(VEC_COUNT);
 
         b.iter(|| {
@@ -50,9 +50,9 @@ mod tests {
     }
 
     #[bench]
-    fn u64_get_built_in(b: &mut Bencher) {
+    fn u32_get_built_in(b: &mut Bencher) {
         let data = get_random_range(VEC_COUNT);
-        let mut map: HashMap<&u64, &u64> = HashMap::with_capacity(data.len());
+        let mut map: HashMap<&u32, &u32> = HashMap::with_capacity(data.len());
 
         for s in data.iter() {
             test::black_box(map.insert(s, s));
@@ -70,7 +70,7 @@ mod tests {
     // ********** IndexMap **********
 
     #[bench]
-    fn u64_insert_indexmap(b: &mut Bencher) {
+    fn u32_insert_indexmap(b: &mut Bencher) {
         let data = get_random_range(VEC_COUNT);
         let mut map = IndexMap::with_capacity(data.len());
 
@@ -84,9 +84,9 @@ mod tests {
     }
 
     #[bench]
-    fn u64_get_indexmap(b: &mut Bencher) {
+    fn u32_get_indexmap(b: &mut Bencher) {
         let data = get_random_range(VEC_COUNT);
-        let mut map: IndexMap<&u64, &u64> = IndexMap::with_capacity(data.len());
+        let mut map: IndexMap<&u32, &u32> = IndexMap::with_capacity(data.len());
 
         for s in data.iter() {
             test::black_box(map.insert(s, s));
@@ -104,7 +104,7 @@ mod tests {
     // ********** Intmap **********
 
     #[bench]
-    fn u64_insert_intmap(b: &mut Bencher) {
+    fn u32_insert_intmap(b: &mut Bencher) {
         let data = get_random_range(VEC_COUNT);
         let mut map = IntMap::with_capacity(data.len());
 
@@ -118,7 +118,7 @@ mod tests {
     }
 
     #[bench]
-    fn u64_insert_intmap_checked(b: &mut Bencher) {
+    fn u32_insert_intmap_checked(b: &mut Bencher) {
         let data = get_random_range(VEC_COUNT);
         let mut map = IntMap::with_capacity(data.len());
 
@@ -132,7 +132,27 @@ mod tests {
     }
 
     #[bench]
-    fn u64_insert_intmap_entry(b: &mut Bencher) {
+    fn u32_insert_builtin_entry(b: &mut Bencher) {
+        let data = get_random_range(VEC_COUNT);
+
+        let mut map: HashMap<u32, &u32> = HashMap::with_capacity(data.len());
+
+        b.iter(|| {
+            map.clear();
+
+            for s in data.iter() {
+                test::black_box(match map.entry(*s) {
+                    std::collections::hash_map::Entry::Occupied(_) => {
+                        panic!("unexpected while insert, i = {}", s)
+                    }
+                    std::collections::hash_map::Entry::Vacant(entry) => entry.insert(s),
+                });
+            }
+        });
+    }
+
+    #[bench]
+    fn u32_insert_intmap_entry(b: &mut Bencher) {
         let data = get_random_range(VEC_COUNT);
 
         let mut map = IntMap::with_capacity(data.len());
@@ -150,7 +170,7 @@ mod tests {
     }
 
     #[bench]
-    fn u64_insert_intmap_without_capacity(b: &mut Bencher) {
+    fn u32_insert_intmap_without_capacity(b: &mut Bencher) {
         let data = get_random_range(VEC_COUNT);
 
         b.iter(|| {
@@ -165,7 +185,7 @@ mod tests {
     }
 
     #[bench]
-    fn u64_resize_intmap(b: &mut Bencher) {
+    fn u32_resize_intmap(b: &mut Bencher) {
         b.iter(|| {
             let mut map: IntMap<u64> = IntMap::new();
             map.reserve(VEC_COUNT);
@@ -174,7 +194,7 @@ mod tests {
     }
 
     #[bench]
-    fn u64_get_intmap(b: &mut Bencher) {
+    fn u32_get_intmap(b: &mut Bencher) {
         let data = get_random_range(VEC_COUNT);
 
         let mut map = IntMap::with_capacity(data.len());
@@ -191,7 +211,7 @@ mod tests {
 
     // ********** Misc **********
 
-    fn get_random_range(count: usize) -> Vec<u64> {
+    fn get_random_range(count: usize) -> Vec<u32> {
         use rand::prelude::StdRng;
         use rand::{Rng, SeedableRng};
 
@@ -199,7 +219,7 @@ mod tests {
         let mut rng = StdRng::seed_from_u64(4242);
 
         for _ in 0..count {
-            vec.push(rng.gen::<u64>());
+            vec.push(rng.gen::<u32>());
         }
 
         vec.sort();

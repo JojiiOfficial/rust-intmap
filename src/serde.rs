@@ -6,6 +6,7 @@ use serde::{
 };
 
 impl<T: Serialize> Serialize for IntMap<T> {
+    #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -19,6 +20,7 @@ impl<T: Serialize> Serialize for IntMap<T> {
 }
 
 impl<'de, T: Deserialize<'de>> Deserialize<'de> for IntMap<T> {
+    #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -32,6 +34,7 @@ struct IntMapVisitor<V> {
 }
 
 impl<V> IntMapVisitor<V> {
+    #[inline]
     fn new() -> Self {
         IntMapVisitor {
             marker: std::marker::PhantomData,
